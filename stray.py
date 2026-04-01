@@ -12,9 +12,9 @@ assistant_instance = None
 
 # ================= ASSISTANT CONTROL =================
 def start_assistant():
-    assistant = WindowsAssistantGUI()
-    assistant.run()
-
+    global assistant_instance
+    assistant_instance = WindowsAssistantGUI()
+    assistant_instance.run()
 
 def stop_assistant():
     global assistant_instance
@@ -28,20 +28,35 @@ def stop_assistant():
 
 # ================= TRAY CALLBACKS =================
 def on_login(icon, item):
-    # Open login window safely (do NOT block tray)
-    threading.Thread(target=open_login, daemon=True).start()
+    import subprocess
+    subprocess.Popen(["python", "l.py"])
 
 
 def on_logout(icon, item):
-    logout_current_user()
-    stop_assistant()
+    import threading
+    import ctypes
+    import subprocess
 
+    def logout_flow():
+        result = ctypes.windll.user32.MessageBoxW(
+            0,
+            "User will be logged out.\nDo you want to continue?",
+            "Logout",
+            4 | 32  # YES/NO + Warning icon
+        )
 
+        if result == 6:  # YES
+            logout_current_user()
+            stop_assistant()
+
+            subprocess.Popen(["python", "l.py"])
+
+    # ✅ Run popup in separate thread (prevents tray freeze)
+    threading.Thread(target=logout_flow, daemon=True).start()
+        
 def on_exit(icon, item):
     stop_assistant()
-    icon.stop()   # ✅ ONLY PLACE icon.stop() IS USED
-
-
+    icon.stop()
 # ================= TRAY START =================
 def start_tray():
     global assistant_thread

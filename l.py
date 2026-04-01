@@ -1,10 +1,11 @@
 import threading
 import tkinter as tk
 from tkinter import messagebox
-# Removed old assistant imports to use the new GUI from uin.py
 from db import set_current_user, validate_user, add_user, init_db, logout_current_user
-from uin import WindowsAssistantGUI  # Import the new GUI class
+from uin import WindowsAssistantGUI
 import re
+
+
 def is_valid_password(password):
     if len(password) < 6:
         return False, "Password must be at least 6 characters long"
@@ -14,8 +15,15 @@ def is_valid_password(password):
         return False, "Password must contain at least one special character"
     return True, ""
 
+
+# ✅ NEW: reopen login safely
+def reopen_login():
+    open_login()
+
+
 def open_login():
     init_db()
+
     root = tk.Tk()
     root.title("Login")
     root.geometry("360x460")
@@ -31,25 +39,20 @@ def open_login():
         fg="#333"
     ).pack(pady=(20, 15))
 
-    # Content Frame
     content = tk.Frame(root, bg="#f0f2f5", width=280)
     content.pack(padx=40)
 
-    # Username
     tk.Label(content, text="Username", bg="#f0f2f5").pack(anchor="w")
     username_entry = tk.Entry(content)
     username_entry.pack(fill="x", pady=(2, 10), ipady=4)
 
-    # Password
     tk.Label(content, text="Password", bg="#f0f2f5").pack(anchor="w")
     password_entry = tk.Entry(content, show="*")
     password_entry.pack(fill="x", pady=(2, 10), ipady=4)
 
-    # Options Frame
     options = tk.Frame(content, bg="#f0f2f5")
     options.pack(fill="x", pady=(0, 15))
 
-    # Show/Hide Password
     def toggle_password():
         if password_entry.cget("show") == "*":
             password_entry.config(show="")
@@ -69,7 +72,6 @@ def open_login():
     )
     show_btn.pack(side="left")
 
-    # Forgot Password (UI only)
     def forgot_password():
         fp_window = tk.Toplevel(root)
         fp_window.title("Reset Password")
@@ -78,9 +80,11 @@ def open_login():
         fp_window.resizable(False, False)
 
         tk.Label(fp_window, text="Reset Your Password", font=("Helvetica", 14, "bold"), bg="#f0f2f5").pack(pady=15)
+
         tk.Label(fp_window, text="New Password", bg="#f0f2f5").pack(anchor="w", padx=20)
         new_pass_entry = tk.Entry(fp_window, show="*")
         new_pass_entry.pack(fill="x", padx=20, pady=(2, 10), ipady=4)
+
         tk.Label(fp_window, text="Confirm Password", bg="#f0f2f5").pack(anchor="w", padx=20)
         confirm_pass_entry = tk.Entry(fp_window, show="*")
         confirm_pass_entry.pack(fill="x", padx=20, pady=(2, 10), ipady=4)
@@ -105,7 +109,6 @@ def open_login():
             messagebox.showinfo("Success", "Password set successfully!")
             fp_window.destroy()
 
-
         tk.Button(
             fp_window,
             text="Save",
@@ -126,7 +129,6 @@ def open_login():
         command=forgot_password
     ).pack(side="right")
 
-    # Register Function
     def register():
         username = username_entry.get().strip()
         password = password_entry.get().strip()
@@ -145,7 +147,7 @@ def open_login():
         else:
             messagebox.showerror("Error", "Username already exists!")
 
-    # Login Function
+    # ✅ UPDATED LOGIN
     def login():
         username = username_entry.get().strip()
         password = password_entry.get().strip()
@@ -153,22 +155,20 @@ def open_login():
         if not username or not password:
             messagebox.showerror("Error", "Fields cannot be empty")
             return
-            
+
         if validate_user(username, password):
             set_current_user(username)
             messagebox.showinfo("Success", "Login successful")
-            
-            # 1. Close the login window
+
             root.destroy()
 
-            # 2. Launch the WindowsAssistantGUI from uin.py immediately
-            assistant_gui = WindowsAssistantGUI()
+            # ✅ Pass callback to assistant
+            assistant_gui = WindowsAssistantGUI(on_logout=reopen_login)
             assistant_gui.run()
-            
+
         else:
             messagebox.showerror("Error", "Invalid username or password")
 
-    # Buttons
     tk.Button(
         content,
         text="Register",
@@ -189,7 +189,6 @@ def open_login():
         command=login
     ).pack(fill="x", ipady=6)
 
-    # Footer
     tk.Label(
         root,
         text="Jarvis Assistant",
@@ -202,7 +201,10 @@ def open_login():
         logout_current_user()
         root.destroy()
 
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
     root.mainloop()
-    
+
+
 if __name__ == "__main__":
     open_login()
